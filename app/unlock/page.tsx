@@ -2,14 +2,29 @@
 
 import { useState } from "react";
 
-
 export default function UnlockPage() {
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const handleUnlock = (e: React.SyntheticEvent) => {
+  const handleUnlock = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
-    document.cookie = `site-unlocked=${password}; path=/; SameSite=Lax`;
-    window.location.href = "/";
+    setError("");
+
+    const res = await fetch("/api/unlock", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ password }),
+    });
+
+    if (res.ok) {
+      window.location.href = "/";
+      return;
+    }
+
+    const data = await res.json().catch(() => ({}));
+    setError(data.error || "Unlock failed");
   };
 
   return (
@@ -39,6 +54,8 @@ export default function UnlockPage() {
           >
             Unlock
           </button>
+
+          {error ? <p className="text-sm text-red-600">{error}</p> : null}
         </form>
       </div>
     </main>

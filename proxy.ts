@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const SITE_PASSWORD = process.env.SITE_PASSWORD;
-
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Allow the unlock page and static assets
   if (
     pathname === "/unlock" ||
+    pathname.startsWith("/api/unlock") ||
     pathname.startsWith("/_next") ||
     pathname === "/favicon.ico"
   ) {
@@ -17,7 +15,7 @@ export function proxy(req: NextRequest) {
 
   const cookie = req.cookies.get("site-unlocked");
 
-  if (cookie?.value === SITE_PASSWORD) {
+  if (cookie?.value === "true") {
     return NextResponse.next();
   }
 
