@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import runCheck from "../../../../lib/checker";
 import storage from "../../../../lib/storage";
+import { sendAlert } from "../../../../lib/alerts/sendgrid";
 
 const HEADER = "x-checker-secret";
 
@@ -22,6 +23,13 @@ export async function POST(req: NextRequest) {
     try {
       const r = await runCheck(s.url);
       await storage.saveCheck(s.id, r as any);
+      // Alerting: send email when check fails or latency exceeds threshold
+      const latencyThreshold = Number(process.env.ALERT_LATENCY_THRESHOLD_MS || "1000");
+      if (!r.ok || (r.latencyMs && r.latencyMs > latencyThreshold)) {
+        const subject = `SiteWatch alert: ${s.url} - ${r.ok ? "slow" : "down"}`;
+        const text = `URL: ${s.url}\nStatus: ${r.status}\nOK: ${r.ok}\nLatency: ${r.latencyMs}ms\nCheckedAt: ${r.checkedAt}\nError: ${r.error || "none"}`;
+        await sendAlert(subject, text);
+      }
       results.push(r);
     } catch (e: any) {
       results.push({ url: s.url, error: e?.message ?? String(e) });
