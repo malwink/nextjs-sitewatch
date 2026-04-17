@@ -24,10 +24,12 @@ export async function listChecks(siteId?: string, limit = 50) {
   const keys = await client.lrange("checks", 0, limit - 1);
   const items = [] as CheckResult[];
   for (const k of keys) {
-    const raw = await client.get(k);
-    if (!raw) continue;
+    let raw = await client.get(k);
+    if (raw == null) continue;
+    // handle different client shapes (string or object)
+    const asString = typeof raw === "string" ? raw : JSON.stringify(raw);
     try {
-      const parsed = JSON.parse(raw) as CheckResult;
+      const parsed = JSON.parse(asString) as CheckResult;
       if (!siteId || parsed.siteId === siteId) items.push(parsed);
     } catch (e) {
       continue;
@@ -37,9 +39,14 @@ export async function listChecks(siteId?: string, limit = 50) {
 }
 
 export async function getCheck(id: string) {
-  const raw = await client.get(`check:${id}`);
-  if (!raw) return null;
-  return JSON.parse(raw) as CheckResult;
+  let raw = await client.get(`check:${id}`);
+  if (raw == null) return null;
+  const asString = typeof raw === "string" ? raw : JSON.stringify(raw);
+  try {
+    return JSON.parse(asString) as CheckResult;
+  } catch (e) {
+    return null;
+  }
 }
 
 export async function addSite(site: { id: string; url: string; name?: string }) {
@@ -49,7 +56,13 @@ export async function addSite(site: { id: string; url: string; name?: string }) 
 
 export async function listSites() {
   const raw = await client.lrange("sites", 0, 999);
-  return raw.map((r) => JSON.parse(r));
+  return raw.map((r) => {
+    try {
+      return JSON.parse(typeof r === "string" ? r : JSON.stringify(r));
+    } catch (e) {
+      return null;
+    }
+  }).filter(Boolean);
 }
 
 export default { saveCheck, listChecks, getCheck, addSite, listSites };
