@@ -13,6 +13,12 @@ export function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // Allow scheduled checks to call the internal endpoint without the unlock cookie
+  if (pathname.startsWith("/api/internal/scheduled-checks")) {
+    const secret = req.headers.get("x-checker-secret");
+    if (secret) return NextResponse.next();
+  }
+
   const cookie = req.cookies.get("site-unlocked");
 
   if (cookie?.value === "true") {
