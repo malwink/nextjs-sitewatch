@@ -1,7 +1,10 @@
 import sgMail from "@sendgrid/mail";
 
 const apiKey = process.env.SENDGRID_API_KEY;
-if (apiKey) sgMail.setApiKey(apiKey);
+if (apiKey) {
+  sgMail.setApiKey(apiKey);
+  /*(sgMail as any).setDataResidency("eu");*/
+}
 
 export async function sendAlert(subject: string, text: string) {
   if (!apiKey) {
