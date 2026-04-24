@@ -4,11 +4,11 @@ import runCheck from "../../../../lib/checker";
 import storage from "../../../../lib/storage";
 import { sendAlert } from "../../../../lib/alerts/sendgrid";
 
-const HEADER = "x-checker-secret";
-
-export async function POST(req: NextRequest) {
-  const secret = req.headers.get(HEADER);
-  if (!process.env.CHECKER_SECRET || secret !== process.env.CHECKER_SECRET) {
+export async function GET(req: NextRequest) {
+  // Vercel cron sends Authorization: Bearer <CRON_SECRET>
+  const authHeader = req.headers.get("authorization");
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
